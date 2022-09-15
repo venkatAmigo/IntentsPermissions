@@ -4,3 +4,5 @@
 - Email
 - Runtime Permissions
 - Gallery
+- Call
+- Camera
