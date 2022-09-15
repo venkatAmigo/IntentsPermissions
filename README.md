@@ -1,6 +1,6 @@
 # IntentsPermissions
 
-# SMS
-# Email
-# Runtime Permissions
-# Gallery
+- SMS
+- Email
+- Runtime Permissions
+- Gallery
