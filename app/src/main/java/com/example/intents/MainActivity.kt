@@ -3,8 +3,11 @@ package com.example.intents
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.provider.Settings
 import android.telephony.SmsManager
 import android.widget.TextView
@@ -14,16 +17,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.example.intents.databinding.ActivityMainBinding
+import java.io.File
 
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var phonePermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var takeImagelauncher: ActivityResultLauncher<Uri>
+    private lateinit  var pickImages: ActivityResultLauncher<String>
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var requestedPermission: Array<String>
-    private lateinit var deniedPermission: Array<String>
-    private var allGranted: Boolean = false
-    lateinit var testView:TextView
+    lateinit var uri: Uri
     lateinit var binding: ActivityMainBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +38,6 @@ class MainActivity : AppCompatActivity() {
 
         setupPermissionsLauncher()
 
-        testView = findViewById(R.id.test_view)
         requestedPermission = arrayOf(Manifest.permission.SEND_SMS, Manifest.permission
             .RECEIVE_SMS,Manifest.permission.CAMERA)
 
@@ -41,11 +46,67 @@ class MainActivity : AppCompatActivity() {
         }else{
             requestPermissions(deniedPermissions(requestedPermission))
         }
-        testView.setOnClickListener {
+        binding.testView.setOnClickListener {
             sendSms()
         }
+        binding.sendMailBtn.setOnClickListener {
+            sendEmail()
+        }
+        pickImages = registerForActivityResult(ActivityResultContracts.GetContent()){ uri->
+            uri.let {
+                binding.imageView.setImageURI(it)
+            }
+        }
+        takeImagelauncher = registerForActivityResult(ActivityResultContracts.TakePicture()){
+            if(it){
+                binding.imageView.setImageURI(uri)
+            }
+        }
+        binding.chooseImgBtn.setOnClickListener {
+            chooseImage()
+        }
+        binding.takeImgBtn.setOnClickListener {
+            takeImage()
+        }
+        phonePermissionLauncher =  registerForActivityResult(ActivityResultContracts
+            .RequestPermission()){
+            if(it == true){
+                call()
+            }
+        }
+        binding.callBtn.setOnClickListener {
+            if(hasPermission(Manifest.permission.CALL_PHONE)){
+                call()
+            }
+            else{
+                requestPermissionLauncher.launch(arrayOf(Manifest.permission.CALL_PHONE))
+            }
+        }
+    }
+    private fun call(){
+        val intent = Intent(Intent.ACTION_CALL,Uri.parse("tel:+918639888917"))
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+    }
+    private fun chooseImage(){
+        pickImages.launch("image/*")
+    }
+    private fun takeImage(){
+        val file = File(Environment.getExternalStoragePublicDirectory(Environment
+            .DIRECTORY_PICTURES),"image_"+System.currentTimeMillis()+".jpg")
+        uri = FileProvider.getUriForFile(this,packageName+".provider",file)
+        takeImagelauncher.launch(uri)
     }
 
+    private fun sendEmail(){
+
+        val intent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("mailto:") // only email apps should handle this
+            putExtra(Intent.EXTRA_EMAIL, "venkatmbts43@gmail.com")
+            putExtra(Intent.EXTRA_SUBJECT, "Sample Subject")
+        }
+        startActivity(Intent.createChooser(intent,"Choose email"))
+    }
     private  fun setupPermissionsLauncher(){
         requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts
