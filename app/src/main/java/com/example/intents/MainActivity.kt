@@ -3,14 +3,12 @@ package com.example.intents
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.provider.MediaStore
 import android.provider.Settings
 import android.telephony.SmsManager
-import android.widget.TextView
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,7 +24,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var phonePermissionLauncher: ActivityResultLauncher<String>
     private lateinit var takeImagelauncher: ActivityResultLauncher<Uri>
-    private lateinit  var pickImages: ActivityResultLauncher<String>
+    private lateinit var pickImages: ActivityResultLauncher<String>
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var requestedPermission: Array<String>
     lateinit var uri: Uri
@@ -38,12 +36,14 @@ class MainActivity : AppCompatActivity() {
 
         setupPermissionsLauncher()
 
-        requestedPermission = arrayOf(Manifest.permission.SEND_SMS, Manifest.permission
-            .RECEIVE_SMS,Manifest.permission.CAMERA)
+        requestedPermission = arrayOf(
+            Manifest.permission.SEND_SMS, Manifest.permission
+                .RECEIVE_SMS, Manifest.permission.CAMERA
+        )
 
-        if(requestedPermission.all { hasPermission(it) }){
+        if (requestedPermission.all { hasPermission(it) }) {
             Toast.makeText(this, "All Granted", Toast.LENGTH_SHORT).show()
-        }else{
+        } else {
             requestPermissions(deniedPermissions(requestedPermission))
         }
         binding.testView.setOnClickListener {
@@ -52,13 +52,13 @@ class MainActivity : AppCompatActivity() {
         binding.sendMailBtn.setOnClickListener {
             sendEmail()
         }
-        pickImages = registerForActivityResult(ActivityResultContracts.GetContent()){ uri->
+        pickImages = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri.let {
                 binding.imageView.setImageURI(it)
             }
         }
-        takeImagelauncher = registerForActivityResult(ActivityResultContracts.TakePicture()){
-            if(it){
+        takeImagelauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) {
+            if (it) {
                 binding.imageView.setImageURI(uri)
             }
         }
@@ -68,56 +68,67 @@ class MainActivity : AppCompatActivity() {
         binding.takeImgBtn.setOnClickListener {
             takeImage()
         }
-        phonePermissionLauncher =  registerForActivityResult(ActivityResultContracts
-            .RequestPermission()){
-            if(it == true){
+        phonePermissionLauncher = registerForActivityResult(
+            ActivityResultContracts
+                .RequestPermission()
+        ) {
+            if (it == true) {
                 call()
             }
         }
         binding.callBtn.setOnClickListener {
-            if(hasPermission(Manifest.permission.CALL_PHONE)){
+            if (hasPermission(Manifest.permission.CALL_PHONE)) {
+                Toast.makeText(this, "granted", Toast.LENGTH_SHORT).show()
                 call()
-            }
-            else{
+            } else {
                 requestPermissionLauncher.launch(arrayOf(Manifest.permission.CALL_PHONE))
             }
         }
     }
-    private fun call(){
-        val intent = Intent(Intent.ACTION_CALL,Uri.parse("tel:+918639888917"))
+
+    private fun call() {
+        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:+918639888917"))
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
     }
-    private fun chooseImage(){
+
+    private fun chooseImage() {
         pickImages.launch("image/*")
     }
-    private fun takeImage(){
-        val file = File(Environment.getExternalStoragePublicDirectory(Environment
-            .DIRECTORY_PICTURES),"image_"+System.currentTimeMillis()+".jpg")
-        uri = FileProvider.getUriForFile(this,packageName+".provider",file)
+
+    private fun takeImage() {
+        val file = File(
+            Environment.getExternalStoragePublicDirectory(
+                Environment
+                    .DIRECTORY_PICTURES
+            ), "image_" + System.currentTimeMillis() + ".jpg"
+        )
+        uri = FileProvider.getUriForFile(this, packageName + ".provider", file)
         takeImagelauncher.launch(uri)
+
     }
 
-    private fun sendEmail(){
+    private fun sendEmail() {
 
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:") // only email apps should handle this
             putExtra(Intent.EXTRA_EMAIL, "venkatmbts43@gmail.com")
             putExtra(Intent.EXTRA_SUBJECT, "Sample Subject")
         }
-        startActivity(Intent.createChooser(intent,"Choose email"))
+        startActivity(Intent.createChooser(intent, "Choose email"))
     }
-    private  fun setupPermissionsLauncher(){
+
+    private fun setupPermissionsLauncher() {
         requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts
                 .RequestMultiplePermissions()
         ) { grantResults ->
-            if(grantResults.all { hasPermission(it.key) }){
+            if (grantResults.all { hasPermission(it.key) }) {
                 Toast.makeText(this, "All Granted", Toast.LENGTH_SHORT).show()
-            }else{
-                if(requestedPermission.any{needAnyRationale(it)}){
+            } else {
+                if (requestedPermission.any { needAnyRationale(it) }) {
                     displayRationale(deniedPermissions(requestedPermission))
-                }else{
+                } else {
                     val intent = Intent()
                     intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                     val uri: Uri = Uri.fromParts("package", packageName, null)
@@ -128,9 +139,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    private fun sendSms(){
+
+    private fun sendSms() {
         val smsManager = getSystemService(SmsManager::class.java) as SmsManager
-        smsManager.sendTextMessage("+9179956612656",null,"Testing Sms",null,null)
+        smsManager.sendTextMessage("+9179956612656", null, "Testing Sms", null, null)
         Toast.makeText(this, "sent", Toast.LENGTH_SHORT).show()
     }
 
@@ -139,9 +151,10 @@ class MainActivity : AppCompatActivity() {
             !hasPermission(it)
         }.toTypedArray()
 
-    private fun requestPermissions(permissions: Array<String>){
-            requestPermissionLauncher.launch(permissions)
+    private fun requestPermissions(permissions: Array<String>) {
+        requestPermissionLauncher.launch(permissions)
     }
+
     private fun displayRationale(permissions: Array<String>) {
         AlertDialog.Builder(this)
             .setTitle("Need permission")
@@ -152,7 +165,10 @@ class MainActivity : AppCompatActivity() {
             }
             .show()
     }
-    private fun needAnyRationale(permission:String)=shouldShowRequestPermissionRationale(permission)
+
+    private fun needAnyRationale(permission: String) =
+        shouldShowRequestPermissionRationale(permission)
+
     private fun hasPermission(permission: String) = ContextCompat.checkSelfPermission(
         this,
         permission
